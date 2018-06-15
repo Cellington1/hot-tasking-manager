@@ -1,0 +1,71 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
+      - image: circleci/python:2.7
+      
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.5
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - dependencies: sudo apt-get install --no-install-recommends postgresql-9.3-postgis-2.3
+        pre:
+        # Install postgresql and postgis
+
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "requirements.txt" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+            # Install flake8
+            pip install flake8
+            # Setup db user
+            createuser www-data --no-superuser --no-createdb --no-createrole -U postgres
+            createdb -O www-data osmtm_tests -U postgres
+            psql -d osmtm_tests -c "CREATE EXTENSION postgis;" -U postgres
+
+      - save_cache:
+          paths:
+            - ./venv
+            - $HOME/.cache/pip
+            - $HOME/build/hotosm/osm-tasking-manager2/env
+
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
+        
+      # run tests!
+      # this example uses Django's built-in test-runner
+      # other common Python testing frameworks include pytest and nose
+      # https://pytest.org
+      # https://nose.readthedocs.io
+      - run:
+          name: run tests
+          command: |
+            echo [app:main] >> local.test.ini
+            echo sqlalchemy.url = postgresql://www-data:www-data@localhost/osmtm_tests >> local.test.ini
+            . venv/bin/nosetests
+            . venv/bin/flake8 osmtm --exclude=osmtm/static
+            python manage.py test
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
