@@ -60,8 +60,8 @@ jobs:
       - run:
           name: run tests
           command: |
-            echo [app:main] >> local.test.ini
-            echo sqlalchemy.url = postgresql://www-data:www-data@localhost/osmtm_tests >> local.test.ini
+            'echo [app:main] >> local.test.ini'
+            'echo sqlalchemy.url = postgresql://www-data:www-data@localhost/osmtm_tests >> local.test.ini'
             . venv/bin/nosetests
             . venv/bin/flake8 osmtm --exclude=osmtm/static
             python manage.py test
